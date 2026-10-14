@@ -1,0 +1,21 @@
+# --- Python virtual environment (each computer builds its own) ---
+.venv/
+venv/
+
+# --- Python's automatic cache files ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# --- Downloaded market data (large; can always be re-downloaded) ---
+# Everything in data/ is ignored except its README.
+data/*
+!data/README.md
+
+# --- Editor / operating-system clutter ---
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

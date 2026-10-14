@@ -1,0 +1,18 @@
+# The project's "ID card": its name, version and required Python version.
+# Add-on packages (dependencies) will be listed here starting in Phase 3,
+# each one explained before it is added.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantlab"
+version = "0.2.0"
+description = "Research-only crypto backtesting and statistics lab. No live trading."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]

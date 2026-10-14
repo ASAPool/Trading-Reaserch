@@ -1,0 +1,23 @@
+# Project settings. Plain text, no code.
+# Python reads this file with its built-in "tomllib" module (no add-ons needed).
+
+[project]
+# Research and simulation only. There is deliberately no setting for live trading.
+mode = "research"
+scope = "crypto"          # futures are a later expansion, not implemented
+
+[time]
+# Every timestamp in the system is stored in UTC, so all markets
+# share a single clock and daylight-saving time cannot cause errors.
+timezone = "UTC"
+
+[markets.crypto]
+symbols = ["BTC", "ETH", "SOL", "XRP"]
+
+[pipeline]
+# Phase 3 starts with ONE market and ONE timeframe to verify the pipeline.
+first_symbol = "BTC"
+first_timeframe = "1h"
+
+# Trading costs (fees, spread, slippage) are intentionally NOT set yet.
+# They will be researched and documented in Phase 7, not guessed.
