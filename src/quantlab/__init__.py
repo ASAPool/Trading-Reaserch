@@ -3,4 +3,4 @@
 This package never connects to a broker and never places real orders.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

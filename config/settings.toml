@@ -18,6 +18,11 @@ symbols = ["BTC", "ETH", "SOL", "XRP"]
 # Phase 3 starts with ONE market and ONE timeframe to verify the pipeline.
 first_symbol = "BTC"
 first_timeframe = "1h"
+# Fixed dataset period, so every re-download produces the same dataset.
+# Dates are inclusive and in UTC: the first bar opens 2019-01-01 00:00,
+# the last bar opens 2026-09-30 23:00 (for 1-hour bars).
+start_date = "2019-01-01"
+end_date = "2026-09-30"
 
 # Trading costs (fees, spread, slippage) are intentionally NOT set yet.
 # They will be researched and documented in Phase 7, not guessed.
