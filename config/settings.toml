@@ -33,3 +33,16 @@ end_date = "2026-09-30"
 max_abs_close_to_close_return = 0.10   # close moved more than 10% from the previous close
 max_bar_range = 0.15                   # (high - low) / low wider than 15% within one bar
 max_open_vs_prev_close_gap = 0.02      # open more than 2% away from the previous close
+
+[adjudication]
+# Cross-checking validation events against an independent SECOND provider.
+# These rules were FIXED BEFORE any real comparison results were seen.
+# Read-only: second-provider data is never merged into the primary dataset.
+second_provider = "bitstamp"
+window_hours = 24                       # second-source data fetched +/- this many hours around each event
+alignment_min_hours = 100               # normal (unflagged) hours needed to trust that timestamps line up
+alignment_max_median_close_diff = 0.005 # median |close difference| between providers must be <= 0.5%
+open_close_tolerance = 0.01             # open and close "agree" if within 1% (weighted most heavily)
+move_observed_min_ratio = 0.5           # move observed: same direction and >= 50% of the primary's size
+move_not_observed_max_ratio = 0.2       # not observed: opposite direction or <= 20% of the primary's size
+wick_disagreement_threshold = 0.03      # high or low differ > 3%: tagged separately, candle NOT invalidated

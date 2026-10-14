@@ -67,6 +67,16 @@ See [`docs/data-pipeline.md`](docs/data-pipeline.md) for what it does and how it
 Read-only: it reports problems and never changes data. See
 [`docs/data-validation.md`](docs/data-validation.md).
 
+## How to cross-check flagged events (Phase 4, adjudication)
+
+```
+.venv\Scripts\python.exe -m quantlab.data.adjudicate
+```
+
+Compares every missing or suspicious Coinbase hour with an independent second
+provider (Bitstamp). Read-only; nothing is merged or replaced. See
+[`docs/data-adjudication.md`](docs/data-adjudication.md).
+
 ## Roadmap
 
 0. Inspect environment ✅

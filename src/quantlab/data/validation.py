@@ -393,7 +393,8 @@ def _check_missing(check, unique, interval, start, end):
         n = (b - a) // interval + 1
         span = _iso_unix(a) if n == 1 else f"{_iso_unix(a)} to {_iso_unix(b)}"
         check.add(WARNING, f"missing {n} bar{'s' if n > 1 else ''}: {span}",
-                  first_missing_utc=_iso_unix(a), last_missing_utc=_iso_unix(b), bars=n)
+                  first_missing_utc=_iso_unix(a), last_missing_utc=_iso_unix(b), bars=n,
+                  first_missing_unix=a, last_missing_unix=b)
 
 
 def _check_prices(check, rows):
@@ -471,11 +472,12 @@ def _check_suspicious(check, unique, interval, th):
         when = _iso_unix(t)
         if o == h == l == c:
             counts["flat_bars"] += 1
-            check.add(WARNING, f"{when}: flat bar (open = high = low = close = {c}, volume {v['volume']})")
+            check.add(WARNING, f"{when}: flat bar (open = high = low = close = {c}, volume {v['volume']})",
+                      kind="flat_bar", time_unix=t)
         if l > 0 and float((h - l) / l) > th.max_bar_range:
             counts["wide_bars"] += 1
             check.add(WARNING, f"{when}: bar range {float((h - l) / l):.1%} exceeds "
-                               f"{th.max_bar_range:.0%} [H={h} L={l}]")
+                               f"{th.max_bar_range:.0%} [H={h} L={l}]", kind="wide_bar", time_unix=t)
         if i == 0 or times[i - 1] != t - interval:
             continue  # only compare with the previous bar if it is directly adjacent
         prev_close = unique[times[i - 1]].values["close"]
@@ -485,12 +487,12 @@ def _check_suspicious(check, unique, interval, th):
         if abs(ret) > th.max_abs_close_to_close_return:
             counts["large_moves"] += 1
             check.add(WARNING, f"{when}: close moved {ret:+.1%} in one bar "
-                               f"({prev_close} -> {c})")
+                               f"({prev_close} -> {c})", kind="large_move", time_unix=t)
         gap = float(o / prev_close - 1)
         if abs(gap) > th.max_open_vs_prev_close_gap:
             counts["open_gaps"] += 1
             check.add(WARNING, f"{when}: open {o} is {gap:+.1%} away from the previous close "
-                               f"{prev_close}")
+                               f"{prev_close}", kind="open_gap", time_unix=t)
     for key in ("large_moves", "wide_bars", "open_gaps", "flat_bars"):
         check.stats[key] = counts[key]
 
