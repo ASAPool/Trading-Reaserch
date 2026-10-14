@@ -50,7 +50,16 @@ def main(argv=None) -> int:
     source = CoinbaseCandleSource(symbol, interval)
     out_dir = (args.data_dir / source.name / source.product_id
                / f"{timeframe}_{pipeline['start_date']}_{pipeline['end_date']}")
-    _setup_logging(out_dir / "download.log")
+    handlers, previous_level = _setup_logging(out_dir / "download.log")
+    try:
+        return _run(source, timeframe, start, end_inclusive, out_dir)
+    finally:
+        # Always close download.log, even after a failure or crash, so no file
+        # is left open (on Windows an open file cannot be moved or deleted).
+        _teardown_logging(handlers, previous_level)
+
+
+def _run(source, timeframe, start, end_inclusive, out_dir) -> int:
     log = logging.getLogger("quantlab.data.download")
     log.info("Downloading %s %s bars from %s into %s", source.product_id, timeframe, source.name, out_dir)
 
@@ -78,20 +87,31 @@ def _utc_date(text: str) -> datetime:
     return datetime.strptime(text, "%Y-%m-%d").replace(tzinfo=timezone.utc)
 
 
-def _setup_logging(log_path: Path) -> None:
+def _setup_logging(log_path: Path):
+    """Attach console + file log handlers. Returns what is needed to undo it."""
     log_path.parent.mkdir(parents=True, exist_ok=True)
     logger = logging.getLogger("quantlab")
+    previous_level = logger.level
     logger.setLevel(logging.DEBUG)
-    logger.handlers.clear()
     console = logging.StreamHandler(sys.stdout)
     console.setLevel(logging.INFO)
     console.setFormatter(logging.Formatter("%(message)s"))
     logfile = logging.FileHandler(log_path, encoding="utf-8")
     logfile.setLevel(logging.DEBUG)
     logfile.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-    logger.addHandler(console)
-    logger.addHandler(logfile)
+    handlers = [console, logfile]
+    for handler in handlers:
+        logger.addHandler(handler)
+    return handlers, previous_level
 
+
+def _teardown_logging(handlers, previous_level) -> None:
+    """Detach and close exactly the handlers _setup_logging added."""
+    logger = logging.getLogger("quantlab")
+    for handler in handlers:
+        logger.removeHandler(handler)
+        handler.close()  # closes download.log (closing the console handler leaves stdout open)
+    logger.setLevel(previous_level)
 
 if __name__ == "__main__":
     sys.exit(main())

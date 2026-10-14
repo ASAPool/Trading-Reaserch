@@ -3,6 +3,7 @@
 All tests use FAKE data from tests/fake_coinbase.py. No internet is used.
 """
 
+import io
 import json
 import logging
 import sys
@@ -294,14 +295,42 @@ class TestDownloadCommand(unittest.TestCase):
             captured.update(source=source, start=start, end=end_inclusive, out_dir=out_dir)
             raise DownloadError("stopped by test")
 
+        logger = logging.getLogger("quantlab")
+        handlers_before = list(logger.handlers)
+        level_before = logger.level
         with tempfile.TemporaryDirectory() as tmp, \
-                mock.patch.object(cmd, "download_bars", fake_download):
+                mock.patch.object(cmd, "download_bars", fake_download), \
+                mock.patch("sys.stdout", io.StringIO()) as console:
             exit_code = cmd.main(["--data-dir", tmp])
-            logging.getLogger("quantlab").handlers.clear()  # release download.log so it can be deleted
-            logging.getLogger("quantlab").addHandler(logging.NullHandler())
+            log_file = captured["out_dir"] / "download.log"
+            # The command must clean up after itself: download.log closed and
+            # detached, and the logger left exactly as it was found.
+            self.assertEqual(logger.handlers, handlers_before)
+            self.assertEqual(logger.level, level_before)
+            self.assertIn("DOWNLOAD FAILED: stopped by test", log_file.read_text(encoding="utf-8"))
+            log_file.unlink()  # fails on Windows if the file were still open
+        self.assertIn("DOWNLOAD FAILED: stopped by test", console.getvalue())
         self.assertEqual(exit_code, 1)  # failures give a non-zero exit code
         self.assertEqual(captured["source"].product_id, "BTC-USD")
         self.assertEqual(captured["source"].granularity, 3600)
         self.assertEqual(captured["start"], datetime(2019, 1, 1, 0, tzinfo=UTC))
         self.assertEqual(captured["end"], datetime(2026, 9, 30, 23, tzinfo=UTC))
         self.assertEqual(captured["out_dir"].name, "1h_2019-01-01_2026-09-30")
+
+    def test_log_file_is_closed_even_after_an_unexpected_crash(self):
+        from unittest import mock
+        import quantlab.data.download as cmd
+        logger = logging.getLogger("quantlab")
+        handlers_before = list(logger.handlers)
+
+        def crashing_download(source, start, end_inclusive, out_dir):
+            raise RuntimeError("simulated crash")
+
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(cmd, "download_bars", crashing_download), \
+                mock.patch("sys.stdout", io.StringIO()):
+            with self.assertRaises(RuntimeError):  # a crash is not hidden...
+                cmd.main(["--data-dir", tmp])
+            self.assertEqual(logger.handlers, handlers_before)  # ...but the log file is still closed
+            for log_file in Path(tmp).rglob("download.log"):
+                log_file.unlink()
