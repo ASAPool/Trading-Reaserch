@@ -226,18 +226,8 @@ def _fetch_with_retry(url, parse, fetch, sleep, policy):
 def _build_csv(source, chunks, start, end_inclusive, out_dir, manifest, manifest_path,
                now, downloaded, requests_made) -> DownloadResult:
     """Combine all saved raw chunks into one time-ordered CSV."""
-    rows = []
-    outside = 0
-    for chunk in chunks:
-        record = manifest["chunks"][str(chunk.index)]
-        raw_path = out_dir / record["file"]
-        _verify_saved_chunk(raw_path, record)
-        for row in source.parse(raw_path.read_bytes()):
-            if _in_chunk(chunk, row.open_time_unix):
-                rows.append(row)
-            else:
-                outside += 1  # belongs to a neighbouring chunk, which has its own copy
-    rows.sort(key=lambda r: r.open_time_unix)  # stable: duplicates keep their order
+    rows, outside_rows = combine_raw_chunks(source, chunks, out_dir, manifest)
+    outside = len(outside_rows)
 
     csv_bytes = candle_rows_to_csv_bytes(rows)
     csv_path = out_dir / "candles.csv"
@@ -267,6 +257,33 @@ def _build_csv(source, chunks, start, end_inclusive, out_dir, manifest, manifest
     }
     atomic_write_json(manifest_path, manifest)
     return result
+
+
+def combine_raw_chunks(source, chunks, out_dir: Path, manifest: dict):
+    """Re-read every saved raw chunk and split its rows into two lists.
+
+    Returns (rows, outside_rows):
+      rows          rows inside their own chunk's window, sorted by time
+                    (stable sort: any duplicates keep their original order)
+      outside_rows  (chunk_index, row) for rows outside their chunk's window;
+                    these belong to a neighbouring chunk, which has its own copy
+
+    Used both to build candles.csv and, in validation, to prove that the
+    CSV can be rebuilt exactly from the raw files.
+    """
+    rows = []
+    outside_rows = []
+    for chunk in chunks:
+        record = manifest["chunks"][str(chunk.index)]
+        raw_path = Path(out_dir) / record["file"]
+        _verify_saved_chunk(raw_path, record)
+        for row in source.parse(raw_path.read_bytes()):
+            if _in_chunk(chunk, row.open_time_unix):
+                rows.append(row)
+            else:
+                outside_rows.append((chunk.index, row))
+    rows.sort(key=lambda r: r.open_time_unix)
+    return rows, outside_rows
 
 
 def _load_or_create_manifest(path: Path, params: dict, policy: RetryPolicy, now) -> dict:

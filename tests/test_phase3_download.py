@@ -103,7 +103,9 @@ class TestCoinbaseSource(unittest.TestCase):
     def test_parse_rejects_malformed(self):
         source = CoinbaseCandleSource("BTC", H)
         for bad in [b'{"message": "error"}', b'[[1, 2, 3]]', b'[["x", 1, 2, 3, 4, 5]]',
-                    b'[[1546300800, 1, 2, "3", 4, 5]]', b'not json', b'[[1546300800']:
+                    b'[[1546300800, 1, 2, "3", 4, 5]]', b'not json', b'[[1546300800',
+                    b'[[1546300800, NaN, 2, 3, 4, 5]]', b'[[1546300800, 1, Infinity, 3, 4, 5]]',
+                    b'[[1546300800, 1, 2, 3, 4, -Infinity]]']:
             with self.subTest(body=bad), self.assertRaises(ValueError):
                 source.parse(bad)
 

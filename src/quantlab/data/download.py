@@ -19,6 +19,7 @@ import argparse
 import logging
 import sys
 import tomllib
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -29,16 +30,21 @@ from quantlab.markets.crypto.coinbase import CoinbaseCandleSource
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
-def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="Download historical bars (research only).")
-    parser.add_argument("--settings", type=Path, default=PROJECT_ROOT / "config" / "settings.toml")
-    parser.add_argument("--data-dir", type=Path, default=PROJECT_ROOT / "data")
-    args = parser.parse_args(argv)
+@dataclass(frozen=True)
+class Dataset:
+    """Which dataset the settings describe, and where it lives on disk."""
+    source: CoinbaseCandleSource
+    timeframe: str
+    start: datetime
+    end_inclusive: datetime
+    out_dir: Path
 
-    with open(args.settings, "rb") as f:
+
+def resolve_dataset(settings_path: Path, data_dir: Path) -> Dataset:
+    """Read config/settings.toml and work out the dataset and its folder."""
+    with open(settings_path, "rb") as f:
         settings = tomllib.load(f)
     pipeline = settings["pipeline"]
-    symbol = pipeline["first_symbol"]
     timeframe = pipeline["first_timeframe"]
     interval = timeframe_to_seconds(timeframe)
 
@@ -47,9 +53,23 @@ def main(argv=None) -> int:
     start = _utc_date(pipeline["start_date"])
     end_inclusive = _utc_date(pipeline["end_date"]) + timedelta(days=1) - timedelta(seconds=interval)
 
-    source = CoinbaseCandleSource(symbol, interval)
-    out_dir = (args.data_dir / source.name / source.product_id
+    # The provider is chosen here, and only here (Coinbase is a temporary
+    # test provider; see docs/data-pipeline.md).
+    source = CoinbaseCandleSource(pipeline["first_symbol"], interval)
+    out_dir = (Path(data_dir) / source.name / source.product_id
                / f"{timeframe}_{pipeline['start_date']}_{pipeline['end_date']}")
+    return Dataset(source, timeframe, start, end_inclusive, out_dir)
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="Download historical bars (research only).")
+    parser.add_argument("--settings", type=Path, default=PROJECT_ROOT / "config" / "settings.toml")
+    parser.add_argument("--data-dir", type=Path, default=PROJECT_ROOT / "data")
+    args = parser.parse_args(argv)
+
+    dataset = resolve_dataset(args.settings, args.data_dir)
+    source, timeframe = dataset.source, dataset.timeframe
+    start, end_inclusive, out_dir = dataset.start, dataset.end_inclusive, dataset.out_dir
     handlers, previous_level = _setup_logging(out_dir / "download.log")
     try:
         return _run(source, timeframe, start, end_inclusive, out_dir)

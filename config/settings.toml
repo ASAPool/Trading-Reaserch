@@ -26,3 +26,10 @@ end_date = "2026-09-30"
 
 # Trading costs (fees, spread, slippage) are intentionally NOT set yet.
 # They will be researched and documented in Phase 7, not guessed.
+
+[validation]
+# Thresholds for FLAGGING suspicious bars in the Phase 4 validation report.
+# They only decide what gets listed for human review. Nothing is ever removed.
+max_abs_close_to_close_return = 0.10   # close moved more than 10% from the previous close
+max_bar_range = 0.15                   # (high - low) / low wider than 15% within one bar
+max_open_vs_prev_close_gap = 0.02      # open more than 2% away from the previous close

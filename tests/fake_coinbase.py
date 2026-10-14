@@ -15,6 +15,13 @@ def fake_candle(t: int) -> list:
     return [t, base - 1, base + 2, base, base + 1, 1.5]
 
 
+def smooth_candle(t: int) -> list:
+    """A made-up candle whose prices move gently (under 1% per hour), so a clean
+    fake dataset raises no "suspicious move" flags."""
+    base = 1000 + (t // 3600) % 10
+    return [t, base - 1, base + 2, base, base + 1, 1.5]
+
+
 class FakeCoinbase:
     """Callable like quantlab.data.downloader.urllib_fetch(url, timeout).
 
@@ -25,12 +32,14 @@ class FakeCoinbase:
                      an Exception instance (raised) or a (status, headers, body) tuple.
     """
 
-    def __init__(self, available_times, end_inclusive=True, script=None, max_candles=300):
+    def __init__(self, available_times, end_inclusive=True, script=None, max_candles=300,
+                 candle=fake_candle):
         self.available_times = set(available_times)
         self.end_inclusive = end_inclusive
         self.script = list(script or [])
         self.max_candles = max_candles
         self.calls = []
+        self.candle = candle
 
     def __call__(self, url, timeout):
         self.calls.append(url)
@@ -47,7 +56,7 @@ class FakeCoinbase:
             return 400, {}, b'{"message":"granularity too small for the requested time range"}'
         times = [t for t in self.available_times
                  if start <= t and (t <= end if self.end_inclusive else t < end)]
-        candles = [fake_candle(t) for t in sorted(times, reverse=True)]  # newest first, like Coinbase
+        candles = [self.candle(t) for t in sorted(times, reverse=True)]  # newest first, like Coinbase
         assert len(candles) <= self.max_candles, "fake server: response would exceed the limit"
         return 200, {"Content-Type": "application/json"}, json.dumps(candles).encode()
 

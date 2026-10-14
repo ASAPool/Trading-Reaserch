@@ -93,7 +93,8 @@ class CoinbaseCandleSource:
         Numbers are kept as exact decimal text (no float rounding), so the
         CSV contains the same digits Coinbase sent.
         """
-        data = json.loads(body, parse_float=Decimal, parse_int=int)
+        data = json.loads(body, parse_float=Decimal, parse_int=int,
+                          parse_constant=_reject_non_finite)
         if not isinstance(data, list):
             raise ValueError(f"expected a JSON list of candles, got {type(data).__name__}: {str(data)[:200]}")
         rows = []
@@ -115,6 +116,12 @@ class CoinbaseCandleSource:
                 volume=str(volume),
             ))
         return rows
+
+
+def _reject_non_finite(token: str):
+    # JSON itself has no NaN/Infinity, but Python's reader accepts them by
+    # default. Refuse them: a price or volume must always be a finite number.
+    raise ValueError(f"non-finite number {token!r} in response")
 
 
 def _iso(moment: datetime) -> str:

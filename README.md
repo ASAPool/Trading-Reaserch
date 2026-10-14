@@ -13,7 +13,7 @@ honestly and reproducibly.
 |---|---|
 | Markets | Crypto only: **BTC, ETH, SOL, XRP** |
 | Futures | Not implemented. Planned as a later expansion. |
-| Current phase | **Phase 3: BTC-USD 1-hour data pipeline** (no trading logic yet) |
+| Current phase | **Phase 4: data validation** (no trading logic yet) |
 
 ## Folder guide
 
@@ -58,13 +58,22 @@ Then:
 
 See [`docs/data-pipeline.md`](docs/data-pipeline.md) for what it does and how it stays safe.
 
+## How to validate the data (Phase 4)
+
+```
+.venv\Scripts\python.exe -m quantlab.data.validate
+```
+
+Read-only: it reports problems and never changes data. See
+[`docs/data-validation.md`](docs/data-validation.md).
+
 ## Roadmap
 
 0. Inspect environment ✅
 1. Project folder + virtual environment ✅
 2. Project structure ✅
-3. One reliable data pipeline (BTC, 1-hour candles) ⬅ current
-4. Data validation tests
+3. One reliable data pipeline (BTC, 1-hour candles) ✅
+4. Data validation tests ⬅ current
 5. Smallest trustworthy backtester
 6. Hand-verifiable test strategies
 7. Realistic costs and execution assumptions
