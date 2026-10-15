@@ -1,0 +1,128 @@
+# =============================================================================
+# DATA QUALITY POLICY  DQP-1
+# =============================================================================
+# How the research system must USE the market data during backtesting.
+#
+# Fixed BEFORE any strategy code or strategy result existed. Any change, for
+# any reason, requires a NEW version (DQP-2, ...) with a written reason; old
+# experiments keep the version they used. Thresholds here must never be tuned
+# based on strategy profitability.
+#
+# The raw market data is NEVER modified by this policy. Quality information
+# lives in a separate file (quality_flags.json) that the engine reads.
+#
+# Units: "fraction" means 0.01 = 1%. "USD" means currency of starting equity.
+# =============================================================================
+
+[policy]
+version = "DQP-1"
+description = "Data-usage policy for backtesting the Coinbase BTC-USD 1h research dataset."
+
+[numerics]
+# A dimensionless value (a return, an expectancy, or P&L divided by starting
+# equity) is classified as:
+#   positive  if value >  zero_tolerance
+#   negative  if value < -zero_tolerance
+#   zero      otherwise
+# This exists ONLY to stop floating-point rounding noise from creating false
+# sign flips. 1e-12 of starting equity is a millionth of a cent per $10,000:
+# far below anything economically meaningful.
+zero_tolerance = 1e-12
+
+[missing_bars]
+# Missing primary-source bars are never filled, interpolated or replaced,
+# and never reconstructed from any other provider.
+fill = "never"
+# A one-bar return exists only if the previous bar is exactly one interval
+# earlier. Across a gap it is UNDEFINED (not zero, not a normal return).
+return_across_gap = "undefined"
+# Per-bar statistics (e.g. volatility) exclude gap-spanning price changes;
+# those changes still count in P&L and the equity curve, and are reported.
+per_bar_statistics_across_gap = "excluded_and_reported"
+
+[indicators]
+# Window-based indicators (moving averages, Bollinger Bands, ATR, ...): a value
+# is valid only if its ENTIRE lookback window contains no missing bars.
+window_indicators = "valid_only_with_complete_window"
+# Recursive indicators (EMA, RSI, MACD, ...): state is RESET at a gap and the
+# indicator must warm up again for a documented number of bars before use.
+recursive_indicators = "reset_and_rewarm"
+# No trading signal may be produced while any indicator it needs is invalid.
+signal_when_indicator_invalid = "none"
+
+[execution_after_gap]
+# During missing primary-source hours:
+#   - an open position stays open
+#   - NOTHING is executed (the primary-source price path is unknown)
+#   - no price level is assumed to have been crossed (or crossed and recovered)
+#   - second-provider prices are NEVER used to simulate primary executions
+during_gap = "hold_and_execute_nothing"
+use_second_provider_prices = false
+# At the FIRST available primary bar after a gap (symmetric for LONG/SHORT):
+#   LONG : first open <= stop   -> exit at FIRST OPEN   (adverse gap, loss realised)
+#          first open >= target -> exit at TARGET price (favourable gap, no windfall)
+#   SHORT: first open >= stop   -> exit at FIRST OPEN
+#          first open <= target -> exit at TARGET price
+#   otherwise continue; ordinary intrabar rules apply inside that bar.
+adverse_gap_fill = "first_open"
+favourable_gap_fill = "limit_price"
+# A trade open during ANY missing primary hour is flagged gap_exposed.
+gap_exposed_flag = "gap_exposed"
+
+[variants]
+# Every experiment is run twice and BOTH results are always reported.
+# Variant A is ALWAYS the official result, whichever looks better.
+official = "A"
+# A: all primary data exactly as downloaded.
+# B: every hour with at least one NOT fully corroborated flag is treated
+#    exactly like a missing hour (same gap rules; no data is invented).
+variant_b_masked_categories = [
+    "partially_corroborated",
+    "not_corroborated",
+    "unverified",
+    "primary_specific_flat",
+    "cross_venue_quiet",
+]
+# "corroborated_extreme" hours are real observations and are never masked.
+
+[sensitivity]
+# Variant A (a) vs Variant B (b). SENSITIVE TO DATA QUALITY if ANY holds:
+#   sign(R_a) != sign(R_b)  or  sign(E_a) != sign(E_b)      (signs per [numerics])
+#   |a - b| > max(floor, relative * max(|a|, |b|))          for each metric below
+# R = total return (fraction), E = expectancy per trade (fraction of position
+# value), D = max drawdown (positive fraction of peak), N = trade count.
+total_return_floor = 0.01
+total_return_relative = 0.10
+expectancy_floor = 0.0005
+expectancy_relative = 0.10
+max_drawdown_floor = 0.01
+max_drawdown_relative = 0.10
+trade_count_floor = 2
+trade_count_relative = 0.05
+# A SENSITIVE result must be reviewed by the auditor before it counts as evidence.
+
+[gap_diagnostic]
+# DIAGNOSTIC CONTRIBUTION ANALYSIS of gap_exposed trades, computed from the
+# RECORDED trades of the single real run. It is NOT a counterfactual backtest:
+# no alternative equity curve, total return, Sharpe ratio or drawdown is ever
+# computed by deleting trades.
+# GAP-EXPOSURE SENSITIVE (auditor review required) if ANY holds:
+#   1  sign((P_all - P_gap) / S0) != sign(P_all / S0)
+#   2  sign(E_non) != sign(E_all)   (E_non undefined because every trade is
+#                                     gap_exposed also counts)
+#   3  |P_gap| > max(contribution_floor * S0, contribution_relative * |P_all|)
+#   4  |E_all - E_non| > max(expectancy_floor, expectancy_relative * max(|E_all|, |E_non|))
+# S0 = starting equity (USD), P = summed net P&L (USD), E = mean trade return.
+contribution_floor = 0.01
+contribution_relative = 0.10
+expectancy_floor = 0.0005
+expectancy_relative = 0.10
+
+[versioning]
+# Every experiment must record: policy version, the commit hash registered for
+# this policy in config/policy_registry.toml, the SHA-256 of this file (line
+# endings normalised to LF), the SHA-256 of quality_flags.json, and the
+# experiment's own code commit. The engine refuses to run if this file's
+# fingerprint does not match the registry.
+registry_file = "config/policy_registry.toml"
+fingerprint = "sha256 of file bytes with CRLF/CR normalised to LF"

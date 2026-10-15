@@ -77,6 +77,18 @@ Compares every missing or suspicious Coinbase hour with an independent second
 provider (Bitstamp). Read-only; nothing is merged or replaced. See
 [`docs/data-adjudication.md`](docs/data-adjudication.md).
 
+## Data quality policy (DQP-1)
+
+How backtests must use the data (missing bars, flagged candles, gap
+execution, sensitivity tests) is fixed in `config/data_quality_policy.toml`
+before any strategy exists. See [`docs/data-quality-policy.md`](docs/data-quality-policy.md).
+
+```
+.venv\Scripts\python.exe -m quantlab.data.quality_flags
+```
+
+builds the separate `quality_flags.json` metadata file (raw data unchanged).
+
 ## Roadmap
 
 0. Inspect environment ✅
