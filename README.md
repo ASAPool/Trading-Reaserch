@@ -1,5 +1,7 @@
 # Trading Research Lab (quantlab)
 
+> **New session? Read [`docs/PROJECT_HANDOFF.md`](docs/PROJECT_HANDOFF.md) first.**
+
 A **research-only** system for testing crypto trading ideas on historical data,
 honestly and reproducibly.
 
@@ -13,7 +15,7 @@ honestly and reproducibly.
 |---|---|
 | Markets | Crypto only: **BTC, ETH, SOL, XRP** |
 | Futures | Not implemented. Planned as a later expansion. |
-| Current phase | **Phase 4: data validation** (no trading logic yet) |
+| Current phase | **Phase 4 complete.** Next: Phase 5 plan (awaiting approval). No trading logic yet. |
 
 ## Folder guide
 
@@ -95,8 +97,8 @@ builds the separate `quality_flags.json` metadata file (raw data unchanged).
 1. Project folder + virtual environment ✅
 2. Project structure ✅
 3. One reliable data pipeline (BTC, 1-hour candles) ✅
-4. Data validation tests ⬅ current
-5. Smallest trustworthy backtester
+4. Data validation tests ✅ (plus Bitstamp adjudication, DQP-1, dataset record)
+5. Smallest trustworthy backtester ⬅ next (plan first)
 6. Hand-verifiable test strategies
 7. Realistic costs and execution assumptions
 8. Train / validation / untouched test methodology

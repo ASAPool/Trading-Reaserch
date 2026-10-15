@@ -1,0 +1,93 @@
+# =============================================================================
+# PERMANENT DATASET RECORD
+# =============================================================================
+# The market data itself is NOT stored in Git (data/ is ignored). This record
+# identifies, by SHA-256 fingerprint, the exact dataset all research is built
+# on. tests/test_dataset_record.py recomputes these fingerprints whenever the
+# real data is present and fails if anything differs.
+#
+# Recorded at the end of Phase 4. Never edit values in place: a new dataset
+# gets a new record file.
+# =============================================================================
+
+[dataset]
+id = "coinbase-exchange_BTC-USD_1h_2019-01-01_2026-09-30"
+folder = "data/coinbase-exchange/BTC-USD/1h_2019-01-01_2026-09-30"
+provider = "coinbase-exchange"
+provider_status = "temporary test provider; final provider to be chosen later"
+product_id = "BTC-USD"
+granularity_seconds = 3600
+start_utc = "2019-01-01T00:00:00Z"          # open time of the first bar
+end_inclusive_utc = "2026-09-30T23:00:00Z"  # open time of the last bar
+timezone = "UTC"
+
+[download]
+chunks = 228
+http_requests = 228                 # no retries were needed
+boundary_rows_excluded = 228        # 227 overlaps + 1 bar after the period end
+
+[counts]
+bar_slots_in_period = 67920
+bars_present = 67901
+bars_missing = 19
+missing_gaps = 9
+duplicate_bar_times = 0
+
+# Missing bars (UTC, bar open times). Never filled. All 19 were
+# PRIMARY-SPECIFIC GAPS: Bitstamp traded during every one of them.
+missing_gaps_utc = [
+    "2019-04-11 13:00",
+    "2019-06-20 15:00",
+    "2019-10-31 20:00",
+    "2020-01-30 17:00",
+    "2020-09-04 23:00",
+    "2020-10-20 20:00",
+    "2023-03-04 18:00 to 2023-03-04 20:00",
+    "2025-10-25 16:00 to 2025-10-25 20:00",
+    "2026-05-08 02:00 to 2026-05-08 06:00",
+]
+
+[validation]
+verdict = "PASSED WITH WARNINGS"
+impossible_candles = 0
+negative_or_zero_volume_bars = 0
+raw_files_verified = 228
+csv_rebuilt_from_raw = "identical, byte for byte"
+boundary_candles_matching = 227
+suspicious_move_warnings = 27
+max_abs_close_to_close_return = 0.10
+max_bar_range = 0.15
+max_open_vs_prev_close_gap = 0.02
+
+[adjudication]
+second_provider = "bitstamp"
+alignment_passed = true
+alignment_normal_hours_compared = 973
+alignment_median_abs_close_diff = "0.033%"
+alignment_best_offset_hours = 0
+missing_bars_primary_specific_gap = 19
+warnings_market_move_independently_observed = 4
+warnings_wide_range_independently_observed = 11
+warnings_partially_observed_unresolved = 11
+warnings_primary_specific_flat_bar = 1
+
+[quality_flags]
+policy_version = "DQP-1"
+flagged_hours = 21                  # 27 warnings fall on 21 distinct hours
+flags_corroborated_extreme = 15
+flags_partially_corroborated = 11
+flags_primary_specific_flat = 1
+variant_b_masked_hours = 9
+reproducible = true                 # rebuilt from the same inputs: identical fingerprint
+
+[fingerprints]
+# SHA-256 of the exact file bytes (data files are not in Git).
+candles_csv = "35f39de2fdf3ce5c3c246d772e170338b7ac6e54c1d3e49e41b9c3ec4d478251"
+manifest_json = "37c19a6ff88c38d5ffe9963004816c1d68ab290ada9ac370b50cd311af7f5055"
+adjudication_report_json = "ba112b74b0e34248f1d77099fd498fb36f651bcaebb999eaef036d65ac8b09a0"
+quality_flags_json = "1e6694aa41b20557baf653c81287f5fadc0bd2c6f05bd0e77d083dca7ebf9df4"
+
+[policy]
+version = "DQP-1"
+commit = "ad7d65005d899a361da66fb89846100458517886"
+sha256 = "f0e1624e3f2aa57442bea929d9857b070f6de1f0f421346669689fd4c61f7196"
