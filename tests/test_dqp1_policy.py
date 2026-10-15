@@ -126,14 +126,31 @@ class TestRegistry(unittest.TestCase):
         if not REGISTRY.exists():
             self.skipTest("registry not created yet (first DQP-1 commit)")
         identity = verify_registered(POLICY, REGISTRY)
-        stored = policy_content_at_commit(ROOT, identity.commit, "config/data_quality_policy.toml")
-        if stored is None:
-            self.skipTest("git history not available")
+        status, stored = policy_content_at_commit(ROOT, identity.commit, "config/data_quality_policy.toml")
+        if status == "git_unavailable":
+            self.skipTest("git is not available")
+        self.assertEqual(status, "ok", f"registered commit check failed: {status}")
         self.assertEqual(stored, identity.sha256, "registered commit does not contain this policy")
         files = subprocess.run(["git", "ls-tree", "-r", "--name-only", identity.commit], cwd=ROOT,
                                capture_output=True, text=True).stdout.splitlines()
         self.assertFalse([f for f in files if f.startswith("src/") and "strateg" in f.lower()],
                          "strategy code must not exist in the DQP-1 commit")
+
+
+class TestCommitLookup(unittest.TestCase):
+
+    def test_lookup_distinguishes_every_failure(self):
+        status, _ = policy_content_at_commit(ROOT, "f" * 40, "config/data_quality_policy.toml")
+        if status == "git_unavailable":
+            self.skipTest("git is not available")
+        self.assertEqual(status, "commit_not_found")
+        first = subprocess.run(["git", "rev-list", "--max-parents=0", "HEAD"], cwd=ROOT,
+                               capture_output=True, text=True).stdout.split()
+        if first:  # the very first commit predates the policy file
+            self.assertEqual(policy_content_at_commit(ROOT, first[0], "config/data_quality_policy.toml")[0],
+                             "file_not_in_commit")
+        with tempfile.TemporaryDirectory() as tmp:  # a folder that is not a git repository
+            self.assertEqual(policy_content_at_commit(Path(tmp), "f" * 40, "x")[0], "git_unavailable")
 
 
 class TestZeroTolerance(unittest.TestCase):

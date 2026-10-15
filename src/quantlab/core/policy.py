@@ -111,18 +111,30 @@ def verify_registered(policy_path: Path, registry_path: Path) -> PolicyIdentity:
     return PolicyIdentity(policy.version, commit, actual)
 
 
-def policy_content_at_commit(repo_dir: Path, commit: str, rel_path: str):
-    """Return the policy file's canonical SHA-256 as stored in `commit`, or None
-    if git (or that commit) is unavailable."""
+def policy_content_at_commit(repo_dir: Path, commit: str, rel_path: str) -> tuple:
+    """Look up the policy file as stored in `commit`.
+
+    Returns (status, sha256) where status is one of:
+      "ok"                  sha256 is the canonical fingerprint of the stored file
+      "git_unavailable"     git could not be run (the ONLY acceptable reason to skip)
+      "commit_not_found"    the commit does not exist in this repository
+      "file_not_in_commit"  the commit exists but does not contain the policy file
+    """
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=repo_dir, capture_output=True, timeout=20)
     try:
-        out = subprocess.run(["git", "show", f"{commit}:{rel_path}"], cwd=repo_dir,
-                             capture_output=True, timeout=20)
+        probe = git("rev-parse", "--git-dir")
     except (OSError, subprocess.SubprocessError):
-        return None
+        return "git_unavailable", None
+    if probe.returncode != 0:
+        return "git_unavailable", None
+    if git("cat-file", "-e", f"{commit}^{{commit}}").returncode != 0:
+        return "commit_not_found", None
+    out = git("show", f"{commit}:{rel_path}")
     if out.returncode != 0:
-        return None
+        return "file_not_in_commit", None
     data = out.stdout.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
-    return hashlib.sha256(data).hexdigest()
+    return "ok", hashlib.sha256(data).hexdigest()
 
 
 def current_code_commit(repo_dir: Path):

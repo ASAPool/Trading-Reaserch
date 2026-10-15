@@ -1,0 +1,14 @@
+# Registry of data-quality policy versions.
+#
+# Each entry records the git commit that CONTAINS the policy file and the
+# SHA-256 fingerprint of that file (line endings normalised to LF). This
+# registry is added in a LATER commit than the policy, because a file cannot
+# contain the hash of the commit that creates it.
+#
+# Never edit an existing entry. A new policy version gets a new entry.
+
+[DQP-1]
+policy_file = "config/data_quality_policy.toml"
+commit = "ad7d65005d899a361da66fb89846100458517886"
+sha256 = "f0e1624e3f2aa57442bea929d9857b070f6de1f0f421346669689fd4c61f7196"
+registered_note = "Committed before any strategy code existed (no strategy files in that commit)."
