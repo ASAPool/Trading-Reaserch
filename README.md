@@ -91,6 +91,13 @@ before any strategy exists. See [`docs/data-quality-policy.md`](docs/data-qualit
 
 builds the separate `quality_flags.json` metadata file (raw data unchanged).
 
+```
+.venv\Scripts\python.exe -m quantlab.data.fingerprints
+```
+
+prints the dataset's real fingerprints and checks them against the permanent
+record in `records/datasets/` (read-only).
+
 ## Roadmap
 
 0. Inspect environment ✅

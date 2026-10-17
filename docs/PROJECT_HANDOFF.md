@@ -92,9 +92,15 @@ See `records/datasets/coinbase-exchange_BTC-USD_1h_2019-01-01_2026-09-30.toml`.
 | candles.csv | 35f39de2fdf3ce5c3c246d772e170338b7ac6e54c1d3e49e41b9c3ec4d478251 |
 | manifest.json | 37c19a6ff88c38d5ffe9963004816c1d68ab290ada9ac370b50cd311af7f5055 |
 | adjudication_report.json | ba112b74b0e34248f1d77099fd498fb36f651bcaebb999eaef036d65ac8b09a0 |
-| quality_flags.json | 1e6694aa41b20557baf653c81287f5fadc0bd2c6f05bd0e77d083dca7ebf9df4 |
+| quality_flags.json | 1e6694aa41b20557bafb53c81287f5fadc0bd2c6f05bd0e77d083dca7ebf9df4 |
 
 **The raw dataset must never be modified, filled, or merged with other providers.**
+
+Never copy fingerprints by hand. Print them with
+`.venv\Scripts\python.exe -m quantlab.data.fingerprints`, which also reports
+MATCH/MISMATCH against this record. (A hand-copied one-character typo in the
+quality_flags.json fingerprint was caught by `tests/test_dataset_record.py` and
+corrected; the real file was never changed.)
 
 ## 6. DQP-1 (data-usage policy), fixed before any strategy existed
 

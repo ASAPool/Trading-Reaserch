@@ -74,6 +74,20 @@ class TestDatasetRecord(unittest.TestCase):
             self.assertEqual(REC["validation"][key], value, key)
         self.assertEqual(settings["pipeline"]["start_date"] + "T00:00:00Z", REC["dataset"]["start_utc"])
 
+    def test_documentation_fingerprints_match_record(self):
+        """No document may carry a fingerprint that disagrees with the record."""
+        import re
+        known = set(REC["fingerprints"].values()) | {REC["policy"]["sha256"]}
+        handoff = (ROOT / "docs" / "PROJECT_HANDOFF.md").read_text(encoding="utf-8")
+        found = set(re.findall(r"\b[0-9a-f]{64}\b", handoff))
+        self.assertTrue(found, "handoff lists no fingerprints")
+        self.assertEqual(found - known, set(), "handoff contains fingerprints not in the record")
+        for name in ("candles.csv", "manifest.json", "adjudication_report.json", "quality_flags.json"):
+            row = next(line for line in handoff.splitlines() if line.startswith(f"| {name} |"))
+            key = name.replace(".", "_")
+            self.assertIn(REC["fingerprints"][key], row, name)
+        self.assertIn(REC["policy"]["commit"], handoff)
+
     def test_real_files_match_record(self):
         """Runs wherever the real data exists (the research laptop)."""
         present = {k: p for k, p in REAL_FILES.items() if p.exists()}
@@ -84,6 +98,57 @@ class TestDatasetRecord(unittest.TestCase):
             with self.subTest(name):
                 self.assertEqual(sha256(path), REC["fingerprints"][name],
                                  f"{path} does not match the permanent dataset record")
+
+    def test_quality_flags_inputs_match_record(self):
+        """Second, independent path: the fingerprints quality_flags.json recorded
+        for its own inputs must equal the permanent record."""
+        flags = REAL_FILES["quality_flags_json"]
+        if not flags.exists():
+            self.skipTest("real data not present on this computer")
+        import json
+        doc = json.loads(flags.read_bytes())
+        self.assertEqual(doc["inputs"]["candles_csv_sha256"], REC["fingerprints"]["candles_csv"])
+        self.assertEqual(doc["inputs"]["manifest_sha256"], REC["fingerprints"]["manifest_json"])
+        self.assertEqual(doc["inputs"]["adjudication_report_sha256"],
+                         REC["fingerprints"]["adjudication_report_json"])
+        self.assertEqual(doc["policy"]["policy_commit"], REC["policy"]["commit"])
+        self.assertEqual(doc["policy"]["policy_sha256"], REC["policy"]["sha256"])
+
+
+class TestFingerprintsCommand(unittest.TestCase):
+
+    def test_prints_computed_values_and_detects_mismatch(self):
+        import io
+        import tempfile
+        from unittest import mock
+        import quantlab.data.fingerprints as cmd
+        with tempfile.TemporaryDirectory() as tmp:
+            data = Path(tmp) / "data"
+            files = {
+                "candles_csv": data / "coinbase-exchange/BTC-USD/1h_2019-01-01_2026-09-30/candles.csv",
+                "manifest_json": data / "coinbase-exchange/BTC-USD/1h_2019-01-01_2026-09-30/manifest.json",
+                "adjudication_report_json": data / "adjudication" / NAME / "adjudication_report.json",
+                "quality_flags_json": data / "quality" / NAME / "quality_flags.json",
+            }
+            for key, path in files.items():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(key.encode())
+            records = Path(tmp) / "records"
+            records.mkdir()
+            good = "".join(f'{k} = "{sha256(p)}"\n' for k, p in files.items())
+            (records / f"{NAME}.toml").write_text("[fingerprints]\n" + good)
+            args = ["--settings", str(ROOT / "config" / "settings.toml"), "--data-dir", str(data),
+                    "--records-dir", str(records)]
+            with mock.patch("sys.stdout", io.StringIO()) as out:
+                self.assertEqual(cmd.main(args), 0)
+            for key, path in files.items():
+                self.assertIn(f'{key} = "{sha256(path)}"', out.getvalue())   # paste-ready line
+            self.assertIn("All fingerprints match", out.getvalue())
+            typo = good.replace(sha256(files["quality_flags_json"])[20], "#", 1)  # one-character typo
+            (records / f"{NAME}.toml").write_text("[fingerprints]\n" + typo)
+            with mock.patch("sys.stdout", io.StringIO()) as out:
+                self.assertEqual(cmd.main(args), 1)
+            self.assertIn("MISMATCH", out.getvalue())
 
 
 if __name__ == "__main__":
