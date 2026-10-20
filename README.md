@@ -15,7 +15,7 @@ honestly and reproducibly.
 |---|---|
 | Markets | Crypto only: **BTC, ETH, SOL, XRP** |
 | Futures | Not implemented. Planned as a later expansion. |
-| Current phase | **Phase 4 complete.** Next: build Phase 5 from the approved plan. No trading logic yet. |
+| Current phase | **Phase 5 complete** (backtester, synthetic data only; real data LOCKED). Next: Phase 6. |
 
 ## Folder guide
 
@@ -98,6 +98,14 @@ builds the separate `quality_flags.json` metadata file (raw data unchanged).
 prints the dataset's real fingerprints and checks them against the permanent
 record in `records/datasets/` (read-only).
 
+## The backtest engine (Phase 5)
+
+Replays made-up price bars one hour at a time and provably cannot use future
+data. **COSTS NOT MODELLED (Phase 7).** It refuses to run on the real BTC
+history until the train / validation / final-test split is frozen (Phase 8).
+There is no command to run: it is exercised by the tests. See
+[`docs/backtest-engine.md`](docs/backtest-engine.md).
+
 ## Roadmap
 
 0. Inspect environment ✅
@@ -105,8 +113,8 @@ record in `records/datasets/` (read-only).
 2. Project structure ✅
 3. One reliable data pipeline (BTC, 1-hour candles) ✅
 4. Data validation tests ✅ (plus Bitstamp adjudication, DQP-1, dataset record)
-5. Smallest trustworthy backtester ⬅ next (plan approved: [`docs/phase5-plan.md`](docs/phase5-plan.md)), synthetic data only
-6. Hand-verifiable test strategies (synthetic data only)
+5. Smallest trustworthy backtester ✅ (synthetic data only; see [`docs/backtest-engine.md`](docs/backtest-engine.md))
+6. Hand-verifiable test strategies (synthetic data only) ⬅ next
 7. Costs and execution assumptions (synthetic data only)
 8. Split freeze: train / validation / final-test periods and leakage rules frozen before any real-data strategy result
 9. Experiment tracking

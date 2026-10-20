@@ -46,3 +46,11 @@ open_close_tolerance = 0.01             # open and close "agree" if within 1% (w
 move_observed_min_ratio = 0.5           # move observed: same direction and >= 50% of the primary's size
 move_not_observed_max_ratio = 0.2       # not observed: opposite direction or <= 20% of the primary's size
 wick_disagreement_threshold = 0.03      # high or low differ > 3%: tagged separately, candle NOT invalidated
+
+[backtest]
+# Phase 5 engine (synthetic data only; real data is LOCKED until the split freeze).
+# Starting equity is locked at 10,000 USD. Every trade uses the same fixed
+# notional (no compounding); 0 < fixed_notional <= starting_equity (no leverage).
+# COSTS NOT MODELLED (Phase 7).
+starting_equity = 10000
+fixed_notional = 1000

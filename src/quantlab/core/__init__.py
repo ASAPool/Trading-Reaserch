@@ -1,8 +1,8 @@
-"""Market-neutral building blocks (filled in from Phase 3 onward).
+"""Market-neutral building blocks.
 
 Will contain:
 - the standard price-bar format every market is converted into
-- the backtest engine (Phase 5)
+- the backtest engine and reference indicators (Phase 5, built)
 - the interface for trading costs (Phase 7)
 
 RULE: nothing in this folder may import from ``quantlab.markets``.

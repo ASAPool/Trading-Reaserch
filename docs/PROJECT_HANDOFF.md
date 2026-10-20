@@ -1,7 +1,8 @@
 # PROJECT HANDOFF (read this first)
 
-Last updated: end of **Phase 4** (data validation, adjudication, DQP-1 complete).
-**Phase 5 has NOT started.** No strategy code and no backtester exist yet.
+Last updated: end of **Phase 5** (smallest trustworthy backtester, synthetic data only).
+**Phase 6 has NOT started.** No research strategy exists. The engine has never
+touched the real BTC history (REAL-DATA LOCK, see section 9).
 
 A new Claude Code session must read this file, `README.md`, every file in
 `docs/`, `config/`, `records/`, the Git history (`git log`), and the current
@@ -50,8 +51,10 @@ config/settings.toml             symbol/timeframe/period, validation and adjudic
 config/data_quality_policy.toml  DQP-1 (fixed; see section 6)
 config/policy_registry.toml      DQP-1 commit hash + fingerprint
 records/datasets/*.toml          permanent dataset record (fingerprints)
-src/quantlab/core/               MARKET-NEUTRAL: bars.py, policy.py, gap_execution.py
-src/quantlab/stats/              MARKET-NEUTRAL: sensitivity.py (DQP-1 comparison rules)
+src/quantlab/core/               MARKET-NEUTRAL: bars.py, policy.py, gap_execution.py,
+                                 engine.py (Phase 5 backtester), indicators.py (SMA, EMA)
+src/quantlab/stats/              MARKET-NEUTRAL: sensitivity.py (DQP-1 comparison rules),
+                                 metrics.py (R, E, D, N)
 src/quantlab/experiments/        empty (Phase 9)
 src/quantlab/agents/             empty (Phase 10)
 src/quantlab/data/               chunking, storage, downloader (generic), validation,
@@ -75,6 +78,7 @@ different final provider. The provider is chosen in one place
 | 2 | Project structure |
 | 3 | Chunked, resumable, retrying Coinbase downloader; raw responses kept byte-for-byte with SHA-256 manifest |
 | 4 | Read-only validator (9 checks, NaN/inf rejected); Bitstamp cross-provider adjudication; DQP-1 policy; quality_flags.json; permanent dataset record |
+| 5 | Backtester (`core/engine.py`): no look-ahead by construction, conservative fills, DQP-1 gap rules incl. the approved pending-exit-across-gap rule, Variant A/B, fixed notional, COSTS NOT MODELLED, real-data entry point always refuses. Synthetic data only. See `docs/backtest-engine.md` |
 
 ## 5. The dataset (BTC-USD, 1 hour, Coinbase)
 
@@ -127,7 +131,12 @@ Key points the Phase 5 engine must implement:
 
 ## 7. Test status
 
-**155 tests.** All pass on Python 3.12 and 3.13 in the cloud (2 real-data checks
+**228 tests** after Phase 5 (155 earlier + 73 Phase 5). All pass in the cloud on
+Python 3.12 and 3.13 (the same 2 real-data checks skip there). Phase 5 mutation
+testing: 43 sabotaged versions of engine/indicators/metrics, all caught.
+Laptop verification of the 228 is the next step.
+
+Phase 4 state (kept for the record): **155 tests.** All pass on Python 3.12 and 3.13 in the cloud (2 real-data checks
 skip there) and **all 155 pass with no skips on the owner's Windows laptop with
 the real dataset present** (final Phase 4 verification).
 `tests/test_dataset_record.py` re-checks the real files' fingerprints wherever the
@@ -139,19 +148,26 @@ the validator, adjudicator and DQP-1 rules (all sabotaged rules caught).
 - Coinbase is a temporary source; volume is Coinbase-only.
 - Bitstamp's real response format was verified only by the laptop run (cloud blocked).
 - XRP on Coinbase was suspended Jan 2021 to Jul 2023 (matters in Phase 12).
-- No trading costs defined yet (Phase 7). No intrabar execution rules yet (Phase 5).
+- No trading costs defined yet (Phase 7): every result says COSTS NOT MODELLED (Phase 7).
+- Phase 5 build decisions not spelled out in the plan (documented in
+  `docs/backtest-engine.md`, "Decisions made while building"): the open check runs
+  before a pending market exit on every bar; an adjustment decided before a gap is
+  active at the first bar after it; a position open at the end of the data is not
+  force-closed (reported separately); sensitivity is NOT EVALUABLE when a variant has
+  no closed trades.
 
 ## 9. Current stopping point and exact next step
 
-Phase 4 is complete and fully verified on the laptop (155/155 tests, real data
-fingerprints match the permanent record). Nothing is in progress or uncommitted.
+Phase 5 is built from the fully APPROVED `docs/phase5-plan.md` (section 6, the
+pending-market-exit-across-a-gap rule, was approved by the owner at the start of
+the build session) and pushed. Cloud: 228 tests pass (2 real-data skips).
 
-**Next: build Phase 5 from the APPROVED plan in `docs/phase5-plan.md`.**
-- Everything in that plan is approved EXCEPT section 6 (pending market exits
-  across a missing-data gap), which is PROPOSED: explain it to the owner and get
-  explicit confirmation before implementing it.
-- REAL-DATA LOCK: no strategy, toy strategy, benchmark, speed check or
-  performance calculation may touch the real BTC history until the
-  train/validation/final-test split is frozen (see the revised roadmap in the
-  plan). Synthetic data only.
-- Build in small, tested steps; explain each step to the owner in plain language.
+**Next:**
+1. Owner pulls on the laptop and runs the full suite (expect 228, OK, no skips).
+2. Then plan Phase 6 (hand-verifiable test strategies, synthetic data only) and
+   get the owner's approval before writing code.
+
+REAL-DATA LOCK still applies: no strategy, toy strategy, benchmark, speed check or
+performance calculation may touch the real BTC history until the
+train/validation/final-test split is frozen (Phase 8). `run_real_dataset()` always
+refuses; only the split-freeze phase may unlock it, and only for train/validation.

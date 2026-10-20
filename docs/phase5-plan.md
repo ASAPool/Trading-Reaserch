@@ -1,9 +1,8 @@
 # Phase 5 plan: the smallest trustworthy backtester
 
-**STATUS: APPROVED by the owner**, with ONE exception:
-**Section 6 (pending market exits across a missing-data gap) is PROPOSED and
-must be confirmed by the owner before it is implemented.** Everything else may
-be built as written.
+**STATUS: APPROVED by the owner in full.** Section 6 (pending market exits
+across a missing-data gap) was approved at the start of the Phase 5 build
+session, as written. **Phase 5 is built:** see `docs/backtest-engine.md`.
 
 Build this in a fresh Claude Code session. Read `docs/PROJECT_HANDOFF.md`
 first. Do not widen the scope. Explain progress to the owner in plain language,
@@ -78,12 +77,12 @@ For each bar while a position is open, in this order:
 - Equity curve at each bar close = `starting_equity + realized P&L +
   unrealized P&L` (open position marked at that bar's close).
 
-## 6. Pending market EXIT across a missing-data gap  (PROPOSED — OWNER MUST CONFIRM)
+## 6. Pending market EXIT across a missing-data gap  (APPROVED)
 
 Situation: at the close of bar t the strategy requests a market exit, but the
 next hourly bar is missing.
 
-Proposed rule:
+Approved rule:
 1. The exit request **does not expire** (unlike an entry). It stays pending.
 2. During the missing hours **nothing is executed** and nothing is inferred
    (DQP-1). The position stays open and the trade is marked `gap_exposed`.
