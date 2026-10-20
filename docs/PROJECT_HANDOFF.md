@@ -127,7 +127,9 @@ Key points the Phase 5 engine must implement:
 
 ## 7. Test status
 
-All tests pass on Python 3.12 and 3.13 (cloud) and on the owner's Windows laptop.
+**155 tests.** All pass on Python 3.12 and 3.13 in the cloud (2 real-data checks
+skip there) and **all 155 pass with no skips on the owner's Windows laptop with
+the real dataset present** (final Phase 4 verification).
 `tests/test_dataset_record.py` re-checks the real files' fingerprints wherever the
 real data exists (the laptop) and skips elsewhere. Mutation testing was done for
 the validator, adjudicator and DQP-1 rules (all sabotaged rules caught).
@@ -141,8 +143,25 @@ the validator, adjudicator and DQP-1 rules (all sabotaged rules caught).
 
 ## 9. Current stopping point and exact next step
 
-Phase 4 is complete. **Next: Phase 5, the smallest trustworthy backtesting engine.**
+Phase 4 is complete and fully verified on the laptop (155/155 tests, real data
+fingerprints match the permanent record). The previous Claude Code session was
+ended deliberately to keep context small; nothing is in progress or uncommitted. **Next: Phase 5, the smallest trustworthy backtesting engine.**
 Do NOT start building it directly. First propose a written Phase 5 plan to the
 owner in plain language (scope, intrabar fill rules, how DQP-1 is enforced,
 what is deliberately excluded until Phases 6-9, how it will be tested with
 hand-verifiable examples) and **wait for approval**.
+
+Suggested contents of that plan (for the new session to refine, not to build
+without approval):
+- Bar-by-bar event loop over standardized bars; decisions use only data
+  available at a bar's close; orders fill no earlier than the next bar's open.
+- Explicit, conservative intrabar rules (e.g. if stop and target are both inside
+  one bar, assume the stop was hit first).
+- DQP-1 enforced inside the engine: gap segments, undefined returns across gaps,
+  `first_bar_after_gap`, `gap_exposed` trades, Variant A/B runs, sensitivity and
+  gap diagnostics, refusal to run without the registered policy and matching
+  quality_flags.json.
+- Long and short, one position at a time, fixed position size; costs set to ZERO
+  and clearly labelled (realistic costs are Phase 7).
+- No strategy research yet: only trivial, hand-checkable test strategies
+  (Phase 6), with tiny made-up datasets whose correct results are computed by hand.
