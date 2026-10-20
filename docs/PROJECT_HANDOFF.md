@@ -144,24 +144,14 @@ the validator, adjudicator and DQP-1 rules (all sabotaged rules caught).
 ## 9. Current stopping point and exact next step
 
 Phase 4 is complete and fully verified on the laptop (155/155 tests, real data
-fingerprints match the permanent record). The previous Claude Code session was
-ended deliberately to keep context small; nothing is in progress or uncommitted. **Next: Phase 5, the smallest trustworthy backtesting engine.**
-Do NOT start building it directly. First propose a written Phase 5 plan to the
-owner in plain language (scope, intrabar fill rules, how DQP-1 is enforced,
-what is deliberately excluded until Phases 6-9, how it will be tested with
-hand-verifiable examples) and **wait for approval**.
+fingerprints match the permanent record). Nothing is in progress or uncommitted.
 
-Suggested contents of that plan (for the new session to refine, not to build
-without approval):
-- Bar-by-bar event loop over standardized bars; decisions use only data
-  available at a bar's close; orders fill no earlier than the next bar's open.
-- Explicit, conservative intrabar rules (e.g. if stop and target are both inside
-  one bar, assume the stop was hit first).
-- DQP-1 enforced inside the engine: gap segments, undefined returns across gaps,
-  `first_bar_after_gap`, `gap_exposed` trades, Variant A/B runs, sensitivity and
-  gap diagnostics, refusal to run without the registered policy and matching
-  quality_flags.json.
-- Long and short, one position at a time, fixed position size; costs set to ZERO
-  and clearly labelled (realistic costs are Phase 7).
-- No strategy research yet: only trivial, hand-checkable test strategies
-  (Phase 6), with tiny made-up datasets whose correct results are computed by hand.
+**Next: build Phase 5 from the APPROVED plan in `docs/phase5-plan.md`.**
+- Everything in that plan is approved EXCEPT section 6 (pending market exits
+  across a missing-data gap), which is PROPOSED: explain it to the owner and get
+  explicit confirmation before implementing it.
+- REAL-DATA LOCK: no strategy, toy strategy, benchmark, speed check or
+  performance calculation may touch the real BTC history until the
+  train/validation/final-test split is frozen (see the revised roadmap in the
+  plan). Synthetic data only.
+- Build in small, tested steps; explain each step to the owner in plain language.
