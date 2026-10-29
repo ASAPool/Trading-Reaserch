@@ -1,7 +1,8 @@
 # PROJECT HANDOFF (read this first)
 
-Last updated: end of **Phase 5** (smallest trustworthy backtester, synthetic data only).
-**Phase 6 has NOT started.** No research strategy exists. The engine has never
+Last updated: end of **Phase 5**, verified on the owner's laptop (228/228, no skips).
+**Phase 6 has NOT started**; its plan is PROPOSED in `docs/phase6-plan.md` and awaits
+the owner's approval. No research strategy exists. The engine has never
 touched the real BTC history (REAL-DATA LOCK, see section 9).
 
 A new Claude Code session must read this file, `README.md`, every file in
@@ -134,7 +135,8 @@ Key points the Phase 5 engine must implement:
 **228 tests** after Phase 5 (155 earlier + 73 Phase 5). All pass in the cloud on
 Python 3.12 and 3.13 (the same 2 real-data checks skip there). Phase 5 mutation
 testing: 43 sabotaged versions of engine/indicators/metrics, all caught.
-Laptop verification of the 228 is the next step.
+**Laptop verification (final Phase 5): all 228 pass with no skips on the owner's
+Windows laptop with the real dataset present** (`Ran 228 tests in 45.672s`, `OK`).
 
 Phase 4 state (kept for the record): **155 tests.** All pass on Python 3.12 and 3.13 in the cloud (2 real-data checks
 skip there) and **all 155 pass with no skips on the owner's Windows laptop with
@@ -158,16 +160,16 @@ the validator, adjudicator and DQP-1 rules (all sabotaged rules caught).
 
 ## 9. Current stopping point and exact next step
 
-Phase 5 is built from the fully APPROVED `docs/phase5-plan.md` (section 6, the
-pending-market-exit-across-a-gap rule, was approved by the owner at the start of
-the build session) and pushed. Cloud: 228 tests pass (2 real-data skips).
+Phase 5 is COMPLETE and fully verified: built from the fully APPROVED
+`docs/phase5-plan.md`, 228/228 tests pass on the laptop with no skips. Nothing is
+in progress or uncommitted.
 
-**Next:**
-1. Owner pulls on the laptop and runs the full suite (expect 228, OK, no skips).
-2. Then plan Phase 6 (hand-verifiable test strategies, synthetic data only) and
-   get the owner's approval before writing code.
+**Next:** the owner reviews `docs/phase6-plan.md` (status PROPOSED). **No Phase 6
+code may be written until the owner explicitly approves it.** Answer the owner's
+open questions in section 12 of that plan first.
 
 REAL-DATA LOCK still applies: no strategy, toy strategy, benchmark, speed check or
 performance calculation may touch the real BTC history until the
-train/validation/final-test split is frozen (Phase 8). `run_real_dataset()` always
-refuses; only the split-freeze phase may unlock it, and only for train/validation.
+train/validation/final-test split and leakage rules are frozen (Phase 8).
+`run_real_dataset()` always refuses; only the split-freeze phase may unlock it, and
+only for train/validation.
