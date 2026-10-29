@@ -138,8 +138,9 @@ Key points the Phase 5 engine must implement:
 ## 7. Test status
 
 **272 tests** after Phase 6 (228 + 44 Phase 6). All pass in the cloud on Python 3.12
-and 3.13 (the same 2 real-data checks skip there). Phase 6 sabotage testing: see
-`docs/strategies.md` / the Phase 6 commit message. Laptop verification is the next step.
+and 3.13 (the same 2 real-data checks skip there). Phase 6 sabotage testing: 37/38
+caught; the one survivor is a documented equivalent mutant (`docs/strategies.md`).
+Laptop verification is the next step.
 
 **228 tests** after Phase 5 (155 earlier + 73 Phase 5). All pass in the cloud on
 Python 3.12 and 3.13 (the same 2 real-data checks skip there). Phase 5 mutation

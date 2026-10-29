@@ -112,7 +112,17 @@ is still at 13:00.
   test enforces this). On many random made-up paths with gaps, for both sides and
   both variants, every decision matches the oracle.
 - Look-ahead tests (changing the future never changes past decisions), LONG/SHORT
-  mirror tests, identity tests, and sabotage testing of every rule.
+  mirror tests and identity tests.
+- **Sabotage (mutation) testing**: 38 deliberately broken versions of the strategies,
+  the time exit and the identity were run against the tests. **37 were caught.**
+  The first run also exposed one real test weakness (a time exit filled at the
+  bar's close went unnoticed because the example bars had open = close); the
+  example data was fixed and that sabotage is now caught.
+  The one survivor is an **equivalent mutant**: removing `ma_cross`'s explicit
+  "previous bar must directly precede this bar" check cannot change any decision,
+  because both averages already reset at a gap and are unavailable on the first
+  bar after it, so pre-gap values can never be compared. The check is kept as a
+  second safeguard.
 - Mirror note for `ma_cross`: 2% of a price is not 2% of its mirror image, so the
   mirror test uses a smooth path where neither level is reached (trades end by
   crosses), and the level **formulas** are checked separately.
