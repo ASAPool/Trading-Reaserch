@@ -1,8 +1,8 @@
 # PROJECT HANDOFF (read this first)
 
-Last updated: end of **Phase 5**, verified on the owner's laptop (228/228, no skips).
-**Phase 6 has NOT started**; its plan is PROPOSED in `docs/phase6-plan.md` and awaits
-the owner's approval. No research strategy exists. The engine has never
+Last updated: end of **Phase 6** (hand-verifiable test strategies, synthetic data only).
+Phase 5 was verified on the owner's laptop (228/228, no skips); Phase 6 awaits laptop
+verification. **Phase 7 has NOT started and has no plan yet.** No research strategy exists. The engine has never
 touched the real BTC history (REAL-DATA LOCK, see section 9).
 
 A new Claude Code session must read this file, `README.md`, every file in
@@ -56,6 +56,10 @@ src/quantlab/core/               MARKET-NEUTRAL: bars.py, policy.py, gap_executi
                                  engine.py (Phase 5 backtester), indicators.py (SMA, EMA)
 src/quantlab/stats/              MARKET-NEUTRAL: sensitivity.py (DQP-1 comparison rules),
                                  metrics.py (R, E, D, N)
+src/quantlab/strategies/         MARKET-NEUTRAL TEST strategies (Phase 6): base.py (registry,
+                                 checks), null, buy_and_hold, ma_cross, channel_breakout.
+                                 Engine verification ONLY; never evidence of profitability.
+src/quantlab/core/identity.py    StrategyIdentity (name, version, settings, SHA-256)
 src/quantlab/experiments/        empty (Phase 9)
 src/quantlab/agents/             empty (Phase 10)
 src/quantlab/data/               chunking, storage, downloader (generic), validation,
@@ -79,6 +83,7 @@ different final provider. The provider is chosen in one place
 | 2 | Project structure |
 | 3 | Chunked, resumable, retrying Coinbase downloader; raw responses kept byte-for-byte with SHA-256 manifest |
 | 4 | Read-only validator (9 checks, NaN/inf rejected); Bitstamp cross-provider adjudication; DQP-1 policy; quality_flags.json; permanent dataset record |
+| 6 | Four test strategies (`docs/strategies.md`) built to the owner's exact definitions (plan section 13); deterministic strategy identity in every result; engine time exit (`Entry.exit_at`, real UTC time, pending-exit-across-gap rule when due inside missing hours); independent test oracle; synthetic data only |
 | 5 | Backtester (`core/engine.py`): no look-ahead by construction, conservative fills, DQP-1 gap rules incl. the approved pending-exit-across-gap rule, Variant A/B, fixed notional, COSTS NOT MODELLED, real-data entry point always refuses. Synthetic data only. See `docs/backtest-engine.md` |
 
 ## 5. The dataset (BTC-USD, 1 hour, Coinbase)
@@ -132,6 +137,10 @@ Key points the Phase 5 engine must implement:
 
 ## 7. Test status
 
+**272 tests** after Phase 6 (228 + 44 Phase 6). All pass in the cloud on Python 3.12
+and 3.13 (the same 2 real-data checks skip there). Phase 6 sabotage testing: see
+`docs/strategies.md` / the Phase 6 commit message. Laptop verification is the next step.
+
 **228 tests** after Phase 5 (155 earlier + 73 Phase 5). All pass in the cloud on
 Python 3.12 and 3.13 (the same 2 real-data checks skip there). Phase 5 mutation
 testing: 43 sabotaged versions of engine/indicators/metrics, all caught.
@@ -157,16 +166,23 @@ the validator, adjudicator and DQP-1 rules (all sabotaged rules caught).
   active at the first bar after it; a position open at the end of the data is not
   force-closed (reported separately); sensitivity is NOT EVALUABLE when a variant has
   no closed trades.
+- Phase 6: the 3-hour exit needed an engine addition (`Entry.exit_at`), because a
+  strategy only decides after bars it can see and so could not, by itself, make an
+  exit that falls due inside missing hours fill at the first available bar.
+  `channel_breakout` uses no stop adjustments (the owner's exact definition has none).
+- `ma_cross` LONG/SHORT mirror: percentage levels are not additive mirror images, so
+  its trade-level mirror test uses a path where levels are never reached; level
+  formulas are tested separately.
 
 ## 9. Current stopping point and exact next step
 
-Phase 5 is COMPLETE and fully verified: built from the fully APPROVED
-`docs/phase5-plan.md`, 228/228 tests pass on the laptop with no skips. Nothing is
-in progress or uncommitted.
+Phase 6 is built from the APPROVED `docs/phase6-plan.md` (section 13 = the owner's
+binding clarifications) and pushed. Cloud: 272 tests pass (2 real-data skips).
 
-**Next:** the owner reviews `docs/phase6-plan.md` (status PROPOSED). **No Phase 6
-code may be written until the owner explicitly approves it.** Answer the owner's
-open questions in section 12 of that plan first.
+**Next:**
+1. Owner pulls on the laptop and runs the full suite (expect 272, OK, no skips).
+2. Then propose the Phase 7 plan (costs and execution assumptions, synthetic data
+   only) and wait for the owner's approval before writing code.
 
 REAL-DATA LOCK still applies: no strategy, toy strategy, benchmark, speed check or
 performance calculation may touch the real BTC history until the

@@ -15,7 +15,7 @@ honestly and reproducibly.
 |---|---|
 | Markets | Crypto only: **BTC, ETH, SOL, XRP** |
 | Futures | Not implemented. Planned as a later expansion. |
-| Current phase | **Phase 5 complete** (backtester, synthetic data only; real data LOCKED). Next: Phase 6. |
+| Current phase | **Phase 6 complete** (test strategies, synthetic data only; real data LOCKED). Next: Phase 7 (plan first). |
 
 ## Folder guide
 
@@ -26,6 +26,7 @@ honestly and reproducibly.
 | `src/quantlab/markets/crypto/` | Everything crypto-specific (data source, fees, 24/7 trading). |
 | `src/quantlab/data/` | Downloading, storing and validating price data. |
 | `src/quantlab/stats/` | Performance math and train / validation / test splits. |
+| `src/quantlab/strategies/` | Test strategies used only to verify the engine on made-up data (Phase 6). |
 | `src/quantlab/experiments/` | The lab notebook: one record per experiment. |
 | `src/quantlab/agents/` | The six research agents and the coordinator (Phase 10). |
 | `tests/` | Automated checks that prove the code behaves correctly. |
@@ -106,6 +107,13 @@ history until the train / validation / final-test split is frozen (Phase 8).
 There is no command to run: it is exercised by the tests. See
 [`docs/backtest-engine.md`](docs/backtest-engine.md).
 
+## Test strategies (Phase 6)
+
+Four deliberately simple strategies (`null`, `buy_and_hold`, `ma_cross`,
+`channel_breakout`) that exist **only to verify the engine on made-up data**.
+They are not research strategies and their results are never evidence of
+profitability. See [`docs/strategies.md`](docs/strategies.md).
+
 ## Roadmap
 
 0. Inspect environment ✅
@@ -114,8 +122,8 @@ There is no command to run: it is exercised by the tests. See
 3. One reliable data pipeline (BTC, 1-hour candles) ✅
 4. Data validation tests ✅ (plus Bitstamp adjudication, DQP-1, dataset record)
 5. Smallest trustworthy backtester ✅ (synthetic data only; see [`docs/backtest-engine.md`](docs/backtest-engine.md))
-6. Hand-verifiable test strategies (synthetic data only) ⬅ next
-7. Costs and execution assumptions (synthetic data only)
+6. Hand-verifiable test strategies ✅ (synthetic data only; see [`docs/strategies.md`](docs/strategies.md))
+7. Costs and execution assumptions (synthetic data only) ⬅ next
 8. Split freeze: train / validation / final-test periods and leakage rules frozen before any real-data strategy result
 9. Experiment tracking
 10. First real-data evaluations (train/validation only)

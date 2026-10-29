@@ -16,6 +16,7 @@ from quantlab.core.bars import Bar  # noqa: E402
 from quantlab.core.engine import (  # noqa: E402
     BacktestConfig, SyntheticDataset, run_synthetic,
 )
+from quantlab.core.identity import StrategyIdentity  # noqa: E402
 from quantlab.core.policy import load_policy  # noqa: E402
 
 POLICY = load_policy(ROOT / "config" / "data_quality_policy.toml")
@@ -61,8 +62,22 @@ class Script:
         return order(position) if callable(order) else order
 
 
+TEST_IDENTITY = StrategyIdentity("unit-test strategy", "test", {},
+                                 "ENGINE VERIFICATION ONLY - NOT EVIDENCE OF PROFITABILITY")
+
+
+def identified(factory):
+    """Give ad-hoc test strategies (which have no identity) a fixed test identity."""
+    def make():
+        s = factory()
+        if not hasattr(s, "identity"):
+            s.identity = TEST_IDENTITY
+        return s
+    return make
+
+
 def run(bars, orders=None, notional=1000, flagged=None, strategy=None):
-    strategy_factory = strategy or (lambda: Script(orders or {}))
+    strategy_factory = identified(strategy or (lambda: Script(orders or {})))
     return run_synthetic(SyntheticDataset(tuple(bars), "unit test", flagged),
                          strategy_factory, BacktestConfig(notional), POLICY)
 

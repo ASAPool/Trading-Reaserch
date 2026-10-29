@@ -126,6 +126,8 @@ invented).
 | `stop_intrabar` / `target_intrabar` | the level was touched inside the bar |
 | `stop_and_target_in_bar_stop_assumed` | both touched; stop assumed first |
 | `market_exit` | requested exit, filled at the next open |
+| `time_exit` | the entry's `exit_at` time was reached; filled at that open (Phase 6) |
+| `time_exit_after_gap` | `exit_at` fell due during missing hours; filled at the first open after them (Phase 6) |
 | `exit_after_gap` | requested exit pending across a gap, filled at the first open after it |
 
 ## Decisions made while building (not covered by the plan's wording)
@@ -142,6 +144,18 @@ can be reviewed; none changes an approved rule.
 3. **A position still open at the end of the data is not force-closed**
    (see Outputs).
 4. **Sensitivity is "NOT EVALUABLE"** when a variant has no closed trades.
+
+## Phase 6 additions (approved)
+
+- **Strategy identity**: every strategy exposes `identity` (name, explicit
+  version, all settings, SHA-256 of their canonical text); every result records
+  it as `strategy_identity`. The engine refuses strategies without one.
+- **Time exit**: an `Entry` may carry `exit_at`, an absolute UTC time fixed at
+  decision time (it must be after the fill time). At the first available bar
+  opening at or after it, after the stop/target open check, the position exits
+  at that open. Clock time passes during missing hours; an exit due inside them
+  follows the approved pending-exit-across-gap rule. Adjustments keep `exit_at`.
+  Needed for the owner's 3-hour real-time exit rule (see `strategies.md`).
 
 ## How we know it works
 

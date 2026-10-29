@@ -21,6 +21,15 @@ Per bar, in this fixed order:
   5. Only now does the strategy see this bar and may decide ONE order for the
      next bar.
 
+TIME EXIT (Phase 6): an Entry may carry `exit_at`, an absolute UTC time fixed at
+decision time. At the first available bar whose open is at or after it, after
+the stop/target open check, the position exits at the open (`time_exit`; after
+missing hours `time_exit_after_gap`, i.e. the approved pending-exit-across-gap
+rule). Clock time passes during missing hours; nothing executes inside them.
+
+STRATEGY IDENTITY (Phase 6): every strategy must expose `identity`, a
+StrategyIdentity (name, explicit version, all settings); every result records it.
+
 Missing bars are never filled. During missing hours nothing is executed or
 inferred; a position open during any missing hour is gap_exposed.
 
@@ -34,6 +43,7 @@ from datetime import datetime
 
 from quantlab.core.bars import Bar
 from quantlab.core.gap_execution import LONG, SHORT, first_bar_after_gap, is_gap_exposed, segments
+from quantlab.core.identity import StrategyIdentity
 from quantlab.core.policy import DataQualityPolicy
 from quantlab.stats.metrics import COSTS_LABEL, Metrics, compute_metrics
 from quantlab.stats.sensitivity import (
@@ -65,11 +75,13 @@ class RealDataLockedError(EngineError):
 
 @dataclass(frozen=True)
 class Entry:
-    """Market entry at the next bar's open. stop/target are ABSOLUTE prices
-    fixed now, from information at or before the decision bar."""
+    """Market entry at the next bar's open. stop/target are ABSOLUTE prices and
+    exit_at an ABSOLUTE UTC time, all fixed now from information at or before
+    the decision bar."""
     side: str
     stop: float = None
     target: float = None
+    exit_at: datetime = None
 
 
 @dataclass(frozen=True)
@@ -143,6 +155,7 @@ class PositionView:
     stop: float
     target: float
     gap_exposed: bool
+    exit_at: datetime = None
 
 
 # --------------------------------------------------------------- results ----
@@ -195,6 +208,7 @@ class BacktestResult:
     variant_b: VariantResult
     sensitivity: dict
     data_identity: dict
+    strategy_identity: dict      # StrategyIdentity.as_dict(): name, version, settings, sha256
     official: str = "A"
     costs: str = COSTS_LABEL
 
@@ -329,7 +343,7 @@ def run_variant(bars, strategy, config: BacktestConfig, policy: DataQualityPolic
                     else:
                         pos = {"side": order.side, "quantity": notional / fill, "index": i,
                                "entry_price": fill, "stop": order.stop, "target": order.target,
-                               "gap_exposed": False}
+                               "exit_at": order.exit_at, "gap_exposed": False}
                         just_entered = True
             elif isinstance(order, Adjust):
                 pos["stop"], pos["target"] = order.stop, order.target
@@ -345,6 +359,8 @@ def run_variant(bars, strategy, config: BacktestConfig, policy: DataQualityPolic
                 close_position(i, d.price, "target_after_gap" if gap else "target_at_open")
             elif pending_exit:
                 close_position(i, bar.open, "exit_after_gap" if gap else "market_exit")
+            elif pos["exit_at"] is not None and bar.open_time >= pos["exit_at"]:
+                close_position(i, bar.open, "time_exit_after_gap" if gap else "time_exit")
 
         # 3. intrabar: stop first if both levels are inside the bar
         if pos is not None:
@@ -371,7 +387,7 @@ def run_variant(bars, strategy, config: BacktestConfig, policy: DataQualityPolic
         seen_missing.append(missing_before[i])
         pview = None if pos is None else PositionView(
             pos["side"], pos["quantity"], bars[pos["index"]].open_time, pos["entry_price"],
-            pos["stop"], pos["target"], pos["gap_exposed"])
+            pos["stop"], pos["target"], pos["gap_exposed"], pos["exit_at"])
         order = strategy.on_bar(view, pview)
         if order is not None:
             if isinstance(order, Entry):
@@ -380,6 +396,14 @@ def run_variant(bars, strategy, config: BacktestConfig, policy: DataQualityPolic
                 if order.side not in (LONG, SHORT):
                     raise StrategyError(f"side must be {LONG!r} or {SHORT!r}")
                 _check_levels(order.side, order.stop, order.target)
+                if order.exit_at is not None:
+                    x = order.exit_at
+                    if not isinstance(x, datetime) or x.tzinfo is None \
+                            or x.utcoffset().total_seconds() != 0:
+                        raise StrategyError("exit_at must be a timezone-aware UTC datetime or None")
+                    if x <= bar.close_time:
+                        raise StrategyError("exit_at must be after the entry fill time "
+                                            "(the decision bar's close)")
             elif isinstance(order, (Exit, Adjust)):
                 if pos is None:
                     raise StrategyError(f"{type(order).__name__} without an open position")
@@ -399,7 +423,8 @@ def run_variant(bars, strategy, config: BacktestConfig, policy: DataQualityPolic
             "note": "position still open at the end of the data; NOT closed, no fill invented",
             "side": pos["side"], "quantity": pos["quantity"],
             "entry_time": bars[pos["index"]].open_time, "entry_price": pos["entry_price"],
-            "stop": pos["stop"], "target": pos["target"], "gap_exposed": pos["gap_exposed"],
+            "stop": pos["stop"], "target": pos["target"], "exit_at": pos["exit_at"],
+            "gap_exposed": pos["gap_exposed"],
             "marked_at_close_of": last.open_time, "mark_price": last.close,
             "unrealized_pnl": _pnl(pos["side"], pos["quantity"], pos["entry_price"], last.close),
             "exit_requested_unfilled": pending is not None and isinstance(pending[0], Exit),
@@ -435,11 +460,19 @@ def run_synthetic(dataset: SyntheticDataset, strategy_factory, config: BacktestC
         raise RealDataLockedError(REAL_DATA_LOCK_MESSAGE + " (run_synthetic needs a SyntheticDataset)")
     flags = dict(dataset.flagged_hours or {})
     masked = frozenset(t for t, m in flags.items() if m)
-    a = run_variant(dataset.bars, strategy_factory(), config, policy, "A", frozenset(flags))
-    b = run_variant(dataset.bars, strategy_factory(), config, policy, "B", frozenset(flags), masked)
+    strategy_a, strategy_b = strategy_factory(), strategy_factory()
+    ids = [getattr(s, "identity", None) for s in (strategy_a, strategy_b)]
+    if not all(isinstance(x, StrategyIdentity) for x in ids):
+        raise EngineError("every strategy must expose `identity` (a StrategyIdentity with "
+                          "name, version and all settings)")
+    if ids[0] != ids[1]:
+        raise EngineError("the strategy factory produced two different identities")
+    a = run_variant(dataset.bars, strategy_a, config, policy, "A", frozenset(flags))
+    b = run_variant(dataset.bars, strategy_b, config, policy, "B", frozenset(flags), masked)
     identity = {"dataset": SYNTHETIC_DATASET, "label": dataset.label,
                 "policy_version": policy.version}
-    return BacktestResult(a, b, _sensitivity(a.metrics, b.metrics, policy), identity)
+    return BacktestResult(a, b, _sensitivity(a.metrics, b.metrics, policy), identity,
+                          ids[0].as_dict())
 
 
 def run_real_dataset(*args, **kwargs):
@@ -450,8 +483,13 @@ def run_real_dataset(*args, **kwargs):
 
 def format_report(result: BacktestResult) -> str:
     """Short human-readable summary. The costs label always comes first."""
+    sid = result.strategy_identity
     lines = [result.costs, f"Dataset: {result.data_identity['dataset']} - "
-                           f"{result.data_identity['label']}"]
+                           f"{result.data_identity['label']}",
+             f"Strategy: {sid['name']} v{sid['version']} {sid['settings']} "
+             f"(identity sha256 {sid['sha256'][:12]}...)"]
+    if sid.get("purpose"):
+        lines.append(f"Purpose: {sid['purpose']}")
     for v in (result.variant_a, result.variant_b):
         m = v.metrics
         e = "undefined" if m.expectancy is None else f"{m.expectancy:+.6f}"

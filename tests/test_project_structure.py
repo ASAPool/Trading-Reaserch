@@ -28,10 +28,11 @@ PACKAGES = [
     "quantlab.stats",
     "quantlab.experiments",
     "quantlab.agents",
+    "quantlab.strategies",
 ]
 
 # Folders that must stay market-neutral so futures can be added later.
-MARKET_NEUTRAL = ["core", "stats", "experiments", "agents"]
+MARKET_NEUTRAL = ["core", "stats", "experiments", "agents", "strategies"]
 
 
 class TestProjectStructure(unittest.TestCase):

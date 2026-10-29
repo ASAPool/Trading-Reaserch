@@ -1,7 +1,7 @@
 # Phase 6 plan: hand-verifiable test strategies
 
-**STATUS: PROPOSED. Not approved. No Phase 6 code may be written until the
-owner approves this plan (including the open questions in section 12).**
+**STATUS: APPROVED by the owner**, with the binding clarifications in
+section 13 (they take precedence over anything earlier in this file).
 
 Read `docs/PROJECT_HANDOFF.md`, `docs/phase5-plan.md` and
 `docs/backtest-engine.md` first. Do not widen the scope.
@@ -133,3 +133,40 @@ every sabotaged rule is caught; the real data is still untouched.
    `ma_cross` fast 3 / slow 5 bars, stop 2% and target 4% from the decision
    close; `channel_breakout` N = 4 bars, exit after K = 3 bars held.
    Approve these?
+
+## 13. Owner's approval and binding clarifications
+
+Approved: all four strategies, the strategy identity, and the fixed synthetic
+settings. Clarifications:
+
+1. The four strategies exist **only to verify engine behaviour on synthetic
+   data**. They are not research strategies; their results must never be
+   presented as evidence of profitability.
+2. **Strategy identity**: every result deterministically records the strategy
+   name, an explicit version, and all settings used, never relying only on a
+   class name or memory representation. Same strategy/version/settings, same
+   recorded identity, every time.
+3. **ma_cross, exactly** (LONG; SHORT is the exact mirror):
+   - entry cross at closed bar t only when `fast[t-1] <= slow[t-1]` and `fast[t] > slow[t]`
+   - exit cross only when `fast[t-1] >= slow[t-1]` and `fast[t] < slow[t]`
+   - equality alone is not a cross; t-1 and t must both have valid, fully
+     warmed-up values; a cross is never inferred across a gap or warm-up
+   - fast 3 h, slow 5 h, stop 2% and target 4% from the **decision bar close**,
+     fixed at decision time, never recalculated from the fill; if the next open
+     makes them invalid under Phase 5 rules, the entry is cancelled and recorded.
+4. **channel_breakout, exactly**: LONG signal at closed bar t when `close[t]` is
+   strictly greater than the highest HIGH of the 4 immediately preceding hourly
+   bars (bar t excluded). Those 4 bars must be genuinely consecutive hourly
+   observations; a missing hour anywhere in the lookback means no signal.
+   LONG stop = lowest LOW of the same 4 bars. SHORT mirrored (close strictly below
+   the lowest LOW; stop at the highest HIGH). Equality is not a breakout.
+5. **3-hour exit uses real elapsed UTC time**, not observed bars. A fill at the
+   10:00 open has completed three hours at the 13:00 boundary. If data is missing
+   while the position is held, clock time still passes, the trade is gap_exposed,
+   nothing is executed inside missing hours, and an exit that fell due during the
+   missing period stays pending and follows the approved pending-exit-across-gap
+   rule at the first available bar. Hand-worked tests make the timing unambiguous.
+6. The test oracle is **genuinely independent**: it never calls the production
+   strategy code or its signal helpers.
+7. **REAL-DATA LOCK is absolute**: no Phase 6 strategy runs on real BTC data; no
+   performance numbers, previews, smoke tests, benchmarks or speed tests on it.
