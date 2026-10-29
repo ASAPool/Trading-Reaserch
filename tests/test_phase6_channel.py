@@ -12,7 +12,9 @@ Common hand-worked setup (LONG):
   h5 (125, 127, 124, 126): fills at the 05:00 OPEN 125 -> 8 units.
   h6 (126, 128, 125, 127)   h7 (127, 128, 126, 128)
   Three hours complete at the 08:00 boundary = the CLOSE of the h7 bar.
-  h8 (130, 131, 129, 130): the exit fills at the 08:00 OPEN 130 -> 8 * 5 = +40.
+  h8 (130, 131, 127, 129): the exit fills at the 08:00 OPEN 130 (not the close 129)
+      -> 8 * 5 = +40.  (Opens differ from closes so a wrong fill price is caught.)
+  h9 (131, 133, 130, 132)
 """
 
 import unittest
@@ -27,7 +29,7 @@ SETUP = {0: bar(0, 120, 122, 119, 121), 1: bar(1, 121, 123, 118, 122),
          2: bar(2, 122, 123, 120, 122), 3: bar(3, 122, 124, 121, 123),
          4: bar(4, 123, 125, 122, 125), 5: bar(5, 125, 127, 124, 126),
          6: bar(6, 126, 128, 125, 127), 7: bar(7, 127, 128, 126, 128),
-         8: bar(8, 130, 131, 129, 130), 9: bar(9, 131, 132, 130, 131)}
+         8: bar(8, 130, 131, 127, 129), 9: bar(9, 131, 133, 130, 132)}
 MIRROR = 250.0
 
 
